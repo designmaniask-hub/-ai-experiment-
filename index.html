@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>생성형 AI 후속질문 연구 참여 안내</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --w: 393px;
+    --h: 852px;
+    --bg: #ffffff;
+    --text-primary: #111111;
+    --text-secondary: #555555;
+    --text-tertiary: #999999;
+    --border: #e0e0e0;
+    --border-light: #f0f0f0;
+    --surface: #f8f8f8;
+    --surface-hover: #f2f2f2;
+    --accent: #1A1A1A;
+    --progress-bg: #ebebeb;
+    --progress-fill: #111111;
+    --error-color: #d9534f;
+    --error-bg: #fff5f5;
+    --error-border: #f5a8a6;
+    --btn-primary-bg: #1A1A1A;
+    --btn-primary-text: #ffffff;
+    --card-radius: 12px;
+    --input-radius: 10px;
+    --btn-radius: 10px;
+    --selected-bg: #1A1A1A;
+    --selected-text: #ffffff;
+    --tag-bg: #f4f4f4;
+    --tag-text: #444444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; word-break: keep-all; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #d8d8d8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* 실제 모바일 기기 접속 시 셸 숨기고 전체화면 */
+  @media (max-width: 500px) {
+    body {
+      background: #ffffff;
+      padding: 0;
+      align-items: flex-start;
+    }
+    .device-shell {
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    .device-shell::before,
+    .device-shell::after {
+      display: none !important;
+    }
+    /* 모바일에서 상태바 숨김 */
+    .status-bar {
+      display: none !important;
+    }
+    /* 상태바 없어진 만큼 상단 여백 줄임 */
+    .top-nav {
+      padding-top: 12px !important;
+    }
+  }
+
+  .device-shell {
+    width: var(--w);
+    height: var(--h);
+    background: var(--bg);
+    border-radius: 50px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.3), 0 0 0 7px #1a1a1a, 0 0 0 8.5px #3a3a3a;
+    overflow: hidden;
+    position: relative;
+  }
+  .device-shell::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 34px;
+    background: #1a1a1a;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+  .device-shell::after {
+    content: '';
+    position: absolute;
+    top: 10px; left: 50%; transform: translateX(-50%);
+    width: 12px; height: 12px;
+    background: #2a2a2a;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #111, 40px 0 0 0 #333;
+    z-index: 101;
+  }
+
+  .screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    background: var(--bg);
+    position: absolute;
+    top: 0; left: 0;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; }
+
+  /* Status Bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 38px 28px 8px;
+    flex-shrink: 0;
+  }
+  .status-time { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
+  .status-icons { display: flex; gap: 5px; align-items: center; font-size: 12px; color: var(--text-primary); }
+
+  /* Top Nav */
+  .top-nav {
+    display: flex;
+    align-items: center;
+    padding: 6px 20px 10px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .nav-back {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .nav-back:active { background: var(--surface); }
+  .nav-back svg { width: 20px; height: 20px; }
+  .nav-title {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-size: 17px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.4px;
+    white-space: nowrap;
+  }
+  .nav-spacer { width: 36px; flex-shrink: 0; }
+
+  /* Progress Bar */
+  .progress-wrap {
+    padding: 0 20px 0;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+  }
+  .progress-track {
+    height: 2.5px;
+    background: var(--progress-bg);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--progress-fill);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* Scrollable Content */
+  .scroll-content {
+    flex: 1;
+    overflow-y: scroll;
+    padding: 0 20px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    min-height: 0;
+  }
+  .scroll-content::-webkit-scrollbar { display: none; }
+
+  /* Fade bottom */
+  .scroll-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
+  }
+  .scroll-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 48px;
+    background: linear-gradient(to top, rgba(255,255,255,0.95), transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Bottom CTA */
+  .bottom-area {
+    padding: 12px 20px 28px;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border: none;
+    border-radius: var(--btn-radius);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.3px;
+    transition: opacity 0.15s;
+  }
+  .btn-primary:active { opacity: 0.8; }
+
+  .btn-outline {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    color: var(--text-primary);
+    border: 1.5px solid var(--border);
+    border-radius: var(--btn-radius);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: -0.3px;
+    margin-top: 10px;
+    transition: background 0.15s;
+  }
+  .btn-outline:active { background: var(--surface); }
+
+  /* Section Title */
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.6px;
+    margin-bottom: 6px;
+    padding-top: 12px;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    letter-spacing: -0.2px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--bg);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--card-radius);
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .card-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .card-text {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.65;
+    letter-spacing: -0.2px;
+  }
+  .card-selected {
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+
+  /* Form Groups */
+  .form-group {
+    margin-bottom: 22px;
+  }
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    display: block;
+    letter-spacing: -0.2px;
+  }
+  .form-hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
+    line-height: 1.5;
+    letter-spacing: -0.1px;
+  }
+
+  /* Choice Buttons */
+  .choice-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .choice-btn {
+    padding: 9px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 30px;
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 13.5px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: -0.2px;
+    font-weight: 400;
+  }
+  .choice-btn:active { opacity: 0.7; }
+  .choice-btn.selected {
+    background: #1A1A1A;
+    color: #FFFFFF;
+    border-color: #1A1A1A;
+  }
+
+  /* Text Input */
+  .text-input {
+    width: 100%;
+    padding: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--input-radius);
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--text-primary);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: -0.2px;
+  }
+  .text-input:focus { border-color: var(--accent); }
+  .text-input::placeholder { color: var(--text-tertiary); }
+  .text-input.error-input { border-color: var(--error-color); }
+
+  .textarea-wrap { position: relative; }
+  .text-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--input-radius);
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--text-primary);
+    background: var(--bg);
+    outline: none;
+    resize: none;
+    line-height: 1.7;
+    transition: border-color 0.2s;
+    letter-spacing: -0.2px;
+  }
+  .text-textarea:focus { border-color: var(--accent); }
+  .text-textarea::placeholder { color: var(--text-tertiary); }
+  .text-textarea.error-input { border-color: var(--error-color); }
+  .char-count {
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  /* Error Message */
+  .error-msg {
+    display: none;
+    font-size: 12.5px;
+    color: var(--error-color);
+    margin-top: 8px;
+    letter-spacing: -0.2px;
+    line-height: 1.5;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Consent */
+  .consent-box {
+    background: var(--surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--card-radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    max-height: 240px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .consent-box::-webkit-scrollbar { display: none; }
+  .consent-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    letter-spacing: -0.1px;
+  }
+  .consent-check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border-light);
+    cursor: pointer;
+  }
+  .custom-check {
+    width: 20px; height: 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    margin-top: 1px;
+  }
+  .custom-check.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .custom-check.checked::after {
+    content: '';
+    width: 5px; height: 9px;
+    border: 2px solid white;
+    border-top: none; border-left: none;
+    transform: rotate(40deg) translateY(-1px);
+    display: block;
+  }
+  .check-label {
+    font-size: 13.5px;
+    color: var(--text-primary);
+    line-height: 1.5;
+    letter-spacing: -0.2px;
+  }
+
+  /* Task Cards */
+  .task-card {
+    border: 1.5px solid var(--border-light);
+    border-left: 4px solid transparent;
+    border-radius: var(--card-radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-card:active { background: #f0f4ff; }
+  .task-card.selected {
+    border-color: #4a7cdc;
+    border-left-color: #4a7cdc;
+    background: #f0f4ff;
+  }
+  .task-card .check-badge {
+    display: none;
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 26px; height: 26px;
+    background: #4a7cdc;
+    border-radius: 50%;
+    align-items: center; justify-content: center;
+  }
+  .task-card.selected .check-badge { display: flex; }
+  .task-card .check-badge::after {
+    content: '';
+    width: 6px; height: 10px;
+    border: 2px solid white;
+    border-top: none; border-left: none;
+    transform: rotate(40deg) translateY(-1px);
+    display: block;
+  }
+  .task-num {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .task-card.selected .task-num { color: #4a7cdc; }
+  .task-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+    padding-right: 36px;
+  }
+  .task-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    letter-spacing: -0.1px;
+  }
+
+  /* Question Cards */
+  .q-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    margin-top: 20px;
+  }
+  .q-section-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .q-section-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .q-card {
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--card-radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.15s;
+    border-left: 3px solid var(--border-light);
+  }
+  .q-card:active { background: var(--surface); }
+  .q-card:hover { border-left-color: var(--accent); }
+  .q-card-text {
+    font-size: 13.5px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    flex: 1;
+    letter-spacing: -0.2px;
+  }
+  .q-card-arrow {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .q-tag {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    background: var(--tag-bg);
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    letter-spacing: 0.1px;
+    font-weight: 500;
+  }
+
+  /* Slider / Bar for Condition B */
+  .slider-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--surface);
+    border-radius: var(--card-radius);
+    border: 1.5px solid var(--border-light);
+  }
+  .slider-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    letter-spacing: -0.2px;
+  }
+  .slider-desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    letter-spacing: -0.1px;
+  }
+  .slider-wrapper {
+    position: relative;
+    padding: 8px 0;
+  }
+  .slider-track {
+    height: 4px;
+    background: var(--progress-bg);
+    border-radius: 4px;
+    position: relative;
+    margin: 8px 10px;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .slider-fill {
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.2s;
+    z-index: 1;
+  }
+  .slider-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 10px;
+    margin-top: 10px;
+  }
+  .slider-step {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+    width: 20px;
+    text-align: center;
+  }
+  .slider-step.active {
+    color: var(--text-primary);
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .slider-knob-row {
+    position: absolute;
+    top: 0; left: 10px; right: 10px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .slider-knob-pos {
+    width: 20px;
+    height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    pointer-events: all;
+  }
+  .slider-knob {
+    width: 20px; height: 20px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: transform 0.2s;
+    display: none;
+  }
+  .slider-knob.visible { display: block; }
+  .slider-thumb {
+    position: absolute;
+    top: 50%; transform: translate(-50%, -50%);
+    width: 16px; height: 16px;
+    background: #1A1A1A;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    pointer-events: none;
+    transition: left 0.15s;
+    z-index: 3;
+  }
+  .slider-end-labels {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 10px 0;
+  }
+  .slider-end-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: -0.1px;
+  }
+
+  /* Evaluation */
+  .eval-item {
+    margin-bottom: 18px;
+    padding: 14px;
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--card-radius);
+    transition: border-color 0.2s;
+  }
+  .eval-item.error-item { border-color: var(--error-border); background: var(--error-bg); }
+  .eval-q {
+    font-size: 13.5px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    letter-spacing: -0.2px;
+  }
+  .eval-scale {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .eval-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+    letter-spacing: -0.1px;
+  }
+  .eval-nums {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .eval-num {
+    flex: 1;
+    padding: 9px 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .eval-num.selected {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* AI Response */
+  .ai-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--card-radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .ai-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .ai-card-body {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.75;
+    letter-spacing: -0.2px;
+  }
+
+  /* Selected Q display */
+  .selected-q-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border-light);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--card-radius);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .selected-q-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .selected-q-text {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.65;
+    letter-spacing: -0.2px;
+    font-weight: 500;
+  }
+
+  /* Completion */
+  .completion-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+    text-align: center;
+  }
+  .completion-icon {
+    width: 64px; height: 64px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+    font-size: 28px;
+  }
+  .completion-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.6px;
+    margin-bottom: 10px;
+  }
+  .completion-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    letter-spacing: -0.2px;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 16px 0;
+  }
+
+  /* Info Badge */
+  .info-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    letter-spacing: -0.1px;
+  }
+</style>
+  <meta property="og:title" content="생성형 AI 후속질문 연구 참여 안내">
+  <meta property="og:description" content="생성형 AI의 후속질문 유형이 아이디어 발상에 미치는 영향을 확인하기 위한 예비조사입니다.">
+  <meta property="og:type" content="website">
+</head>
+<body>
+
+<!-- 카카오톡 인앱 브라우저 안내 팝업 -->
+<div id="kakao-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:white;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;">
+    <div style="font-size:32px;margin-bottom:16px">🌐</div>
+    <div style="font-size:17px;font-weight:700;color:#111;letter-spacing:-0.4px;margin-bottom:10px">외부 브라우저로 열어주세요</div>
+    <div style="font-size:13.5px;color:#555;line-height:1.7;letter-spacing:-0.2px;margin-bottom:24px">카카오톡 내부 브라우저에서는<br>화면이 좁게 보일 수 있습니다.<br><br>아래 방법으로 외부 브라우저로<br>열어주시면 더 편하게 참여하실 수 있습니다.<br><br><strong style="color:#111">📱 아이폰<br>하단 공유 버튼 ⬆ → "Safari로 열기"<br><br>📱 갤럭시(안드로이드)<br>우측 상단 ⋮ → "Chrome으로 열기"<br>또는 "외부 브라우저로 열기"</strong></div>
+    <button onclick="document.getElementById('kakao-overlay').style.display='none'" style="width:100%;padding:14px;background:#1A1A1A;color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:-0.3px;margin-bottom:10px">확인했습니다</button>
+    <button onclick="document.getElementById('kakao-overlay').style.display='none'" style="width:100%;padding:12px;background:transparent;color:#999;border:none;font-size:13px;cursor:pointer;font-family:inherit">그냥 계속하기</button>
+  </div>
+</div>
+
+<script>
+// 카카오톡 인앱 브라우저 감지
+(function() {
+  var ua = navigator.userAgent.toLowerCase();
+  var isKakao = ua.indexOf('kakaotalk') > -1 || ua.indexOf('kakao') > -1;
+  if (isKakao) {
+    var overlay = document.getElementById('kakao-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+    }
+  }
+})();
+</script>
+<div class="device-shell" id="app"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const state = {
+  currentScreen: '01_Research_Consent',
+  consent: false,
+  info: { age: '', gender: '', status: '', aiFreq: '', designExp: '', email: '' },
+  selectedTask: null,
+  condAIdea: '',
+  condAEval: {},
+  condBLevel: 3,
+  condBIdea: '',
+  condBEval: {},
+  returnTo: null,
+};
+
+const TASKS = [
+  { id: 1, name: '온라인 창작 지원 서비스',
+    shortDesc: '당신은 창작 아이디어 발상이 궁금하여 AI에게 콘텐츠 기획 방향을 넓히는 서비스 설계 방법에 대해 물어보고자 합니다.',
+    desc: 'AI를 활용한 창작 지원 서비스를 어떻게 기획하면 좋을까? 사용자가 아이디어를 탐색하고 콘텐츠 방향을 넓히려면 어떤 질문이 필요할까?' },
+  { id: 2, name: '시간 관리 / 집중 지원 서비스',
+    shortDesc: '당신은 집중력과 시간 활용 개선이 궁금하여 AI에게 단순 일정 관리를 넘어선 질문 기반 집중 지원 서비스에 대해 물어보고자 합니다.',
+    desc: 'AI가 나의 집중 습관을 다르게 바라보게 도와준다면 어떤 방식이 효과적일까? 단순 일정 관리를 넘어 어떤 질문을 해줄 수 있을까?' },
+  { id: 3, name: '건강한 생활 습관 지원 서비스',
+    shortDesc: '당신은 생활 습관 개선이 궁금하여 AI에게 식습관·운동·수면 데이터를 활용한 행동 변화 지원 서비스에 대해 물어보고자 합니다.',
+    desc: '식습관, 운동, 수면 데이터를 AI가 분석한다면 어떤 질문으로 나의 행동 변화를 이끌 수 있을까? 단순 추천을 넘어 어떤 서비스가 가능할까?' },
+  { id: 4, name: '지역 커뮤니티 문제 해결 서비스',
+    shortDesc: '당신은 지역 문제 해결 방법이 궁금하여 AI에게 주민 참여와 다양한 관점을 연결하는 커뮤니티 플랫폼 설계에 대해 물어보고자 합니다.',
+    desc: '지역 문제를 AI와 함께 다양한 관점에서 재해석한다면 어떤 해결 방향이 나올까? 주민 참여와 AI 분석을 어떻게 연결할 수 있을까?' },
+];
+
+const COND_A_QUESTIONS = [
+  { id: '06A', label: '정교화', text: '더 자세히 설명해줘', screen: '06A_A_Answer_Detail' },
+  { id: '06B', label: '예시 제공', text: '사례를 보여줘', screen: '06B_A_Answer_Case' },
+  { id: '06C', label: '대안 탐색', text: '다른 방법은?', screen: '06C_A_Answer_Alternative' },
+  { id: '06D', label: '장단점 비교', text: '장단점을 알려줘', screen: '06D_A_Answer_ProsCons' },
+];
+
+const COND_B_QUESTIONS = {
+  1: [
+    { id: 'B_Level1_Q1', type: '사용자 관점 확장', text: '이 서비스를 다른 사용자 집단이 사용한다면 무엇이 달라질까?', screen: 'B_Level1_Q1_Answer' },
+    { id: 'B_Level1_Q2', type: '기능 보완', text: '이 아이디어에 하나의 보조 기능을 추가한다면 무엇이 좋을까?', screen: 'B_Level1_Q2_Answer' },
+    { id: 'B_Level1_Q3', type: '사용 맥락 전환', text: '사용자가 처음 이 서비스를 접할 때 가장 필요한 도움은 무엇일까?', screen: 'B_Level1_Q3_Answer' },
+    { id: 'B_Level1_Q4', type: '핵심 가치 재정의', text: '이 서비스가 더 쉽게 사용되려면 어떤 부분을 바꿔야 할까?', screen: 'B_Level1_Q4_Answer' },
+  ],
+  2: [
+    { id: 'B_Level2_Q1', type: '사용자 관점 확장', text: '사용자가 아니라 운영자의 관점에서 이 서비스를 다시 본다면 무엇이 중요할까?', screen: 'B_Level2_Q1_Answer' },
+    { id: 'B_Level2_Q2', type: '기능 보완', text: '이 서비스를 처음 쓰는 사람과 자주 쓰는 사람의 경험은 어떻게 달라질까?', screen: 'B_Level2_Q2_Answer' },
+    { id: 'B_Level2_Q3', type: '사용 맥락 전환', text: '이 서비스가 개인이 아니라 집단을 대상으로 한다면 어떤 기능이 필요할까?', screen: 'B_Level2_Q3_Answer' },
+    { id: 'B_Level2_Q4', type: '핵심 가치 재정의', text: '이 아이디어를 교육, 공공, 커뮤니티 중 하나의 맥락으로 옮기면 무엇이 바뀔까?', screen: 'B_Level2_Q4_Answer' },
+  ],
+  3: [
+    { id: 'B_Level3_Q1', type: '사용자 관점 확장', text: '이 서비스를 병원 대기 시스템과 연결해 생각한다면 어떤 기능이 나올까?', screen: 'B_Level3_Q1_Answer' },
+    { id: 'B_Level3_Q2', type: '기능 보완', text: '이 아이디어를 게임의 레벨업 구조와 결합하면 어떤 경험이 될까?', screen: 'B_Level3_Q2_Answer' },
+    { id: 'B_Level3_Q3', type: '사용 맥락 전환', text: '이 서비스를 도서관, 시장, 지하철 같은 일상 공간에 비유하면 무엇이 달라질까?', screen: 'B_Level3_Q3_Answer' },
+    { id: 'B_Level3_Q4', type: '핵심 가치 재정의', text: '이 과제를 날씨 예보처럼 다룬다면 AI는 무엇을 예측하거나 알려줄 수 있을까?', screen: 'B_Level3_Q4_Answer' },
+  ],
+  4: [
+    { id: 'B_Level4_Q1', type: '사용자 관점 확장', text: 'AI가 정답을 바로 알려줄 수 없다면 이 서비스는 어떻게 작동해야 할까?', screen: 'B_Level4_Q1_Answer' },
+    { id: 'B_Level4_Q2', type: '기능 보완', text: '사용자가 하루에 한 번만 이 서비스를 사용할 수 있다면 어떤 경험이 중요해질까?', screen: 'B_Level4_Q2_Answer' },
+    { id: 'B_Level4_Q3', type: '사용 맥락 전환', text: '텍스트 입력을 금지한다면 사용자는 어떻게 아이디어를 표현할 수 있을까?', screen: 'B_Level4_Q3_Answer' },
+    { id: 'B_Level4_Q4', type: '핵심 가치 재정의', text: '추천 기능을 제거해야 한다면 이 서비스의 핵심 가치는 어디에서 생길까?', screen: 'B_Level4_Q4_Answer' },
+  ],
+  5: [
+    { id: 'B_Level5_Q1', type: '사용자 관점 확장', text: '이 서비스가 사용자를 돕지 않고 일부러 혼란스럽게 만들어야 한다면 어떤 가치가 생길까?', screen: 'B_Level5_Q1_Answer' },
+    { id: 'B_Level5_Q2', type: '기능 보완', text: '이 서비스의 핵심 기능을 완전히 금지해야 한다면 무엇이 새로운 핵심이 될까?', screen: 'B_Level5_Q2_Answer' },
+    { id: 'B_Level5_Q3', type: '사용 맥락 전환', text: '가장 실패할 것 같은 아이디어만 모아 서비스의 중심 기능으로 만든다면 어떤 플랫폼이 될까?', screen: 'B_Level5_Q3_Answer' },
+    { id: 'B_Level5_Q4', type: '핵심 가치 재정의', text: '사용자가 원하는 답을 주지 않는 AI가 오히려 더 좋은 아이디어를 만들게 한다면 어떻게 설계해야 할까?', screen: 'B_Level5_Q4_Answer' },
+  ],
+};
+
+const TASK_AI_RESPONSE = {
+  1: '온라인 창작 지원 서비스는 사용자가 막연한 아이디어를 가지고 왔을 때, AI가 단순히 완성된 결과물을 제공하는 것이 아니라 창작 과정 자체를 함께 설계하는 방향이 핵심입니다. 예를 들어 "어떤 독자에게 이 콘텐츠를 전달하고 싶은가?", "기존에 비슷한 시도가 실패한 이유는 무엇일까?" 같은 질문으로 사용자의 사고를 확장할 수 있습니다. 이 서비스의 차별점은 AI가 창작의 방향을 대신 결정하지 않고, 사용자가 스스로 새로운 연결을 발견하도록 질문을 설계하는 데 있습니다.',
+  2: '시간 관리와 집중 지원 서비스의 핵심은 단순한 일정 관리 앱과의 차별화입니다. AI는 사용자의 시간 사용 데이터를 분석하여 "당신이 가장 집중하는 시간대는 언제인가?", "반복적으로 미루는 작업의 공통점은 무엇인가?"를 짚어줍니다. 나아가 포모도로, 시간 블록, 역방향 계획 등 다양한 집중 전략 중 사용자 패턴에 맞는 방식을 추천하고, 새로운 루틴 실험을 제안하는 구조로 발전시킬 수 있습니다.',
+  3: '건강한 생활 습관 서비스는 데이터 수집과 추천을 넘어, 사용자가 자신의 행동 패턴을 다른 시각으로 바라보도록 돕는 것이 핵심입니다. "당신이 야식을 먹는 시간과 스트레스 수준은 어떤 관계가 있나?", "수면이 짧았던 날의 공통된 전날 활동은 무엇인가?" 같은 질문으로 단순 추천이 아닌 자기 이해를 이끄는 도구가 될 수 있습니다. 이 서비스의 강점은 사용자가 스스로 변화의 이유를 발견하게 만드는 점입니다.',
+  4: '지역 커뮤니티 문제 해결 서비스는 주민의 불만 접수를 넘어, 문제를 다양한 이해관계자의 시선으로 재해석하는 플랫폼으로 설계할 수 있습니다. AI는 "이 문제로 가장 불편한 사람은 누구인가?", "같은 문제를 다른 도시는 어떻게 해결했나?", "가장 적은 비용으로 가장 빠르게 개선할 수 있는 지점은 어디인가?"를 제시합니다. 주민 참여형 아이디어 확장과 AI 분석이 결합된 구조가 이 서비스의 핵심입니다.',
+};
+
+const EVAL_QUESTIONS = [
+  'AI가 제시한 후속질문들은 아이디어를 구체화하는 데 도움이 되었다.',
+  'AI가 제시한 후속질문들은 새로운 생각을 떠올리는 데 도움이 되었다.',
+  'AI가 제시한 후속질문들은 기존 생각을 확장하는 데 도움이 되었다.',
+  'AI가 제시한 후속질문들은 사용하기 쉽고 이해하기 쉬웠다.',
+  '이 인터페이스를 통해 작성한 아이디어가 만족스럽다.',
+];
+
+// Progress mapping (total ~16 major screens)
+const PROGRESS = {
+  '01_Research_Consent': 1/16,
+  '01_Research_Consent_Error': 1/16,
+  '02_Participant_Info': 2/16,
+  '02b_Experiment_Intro': 2.5/16,
+  '03_Task_Selection': 3/16,
+  '03_Task_Selection_Error': 3/16,
+  '04_Selected_Task_Confirm': 4/16,
+  '05_Condition_A_Interface': 5/16,
+  '06A_A_Answer_Detail': 6/16,
+  '06B_A_Answer_Case': 6/16,
+  '06C_A_Answer_Alternative': 6/16,
+  '06D_A_Answer_ProsCons': 6/16,
+  '07_Condition_A_Idea_Input': 7/16,
+  '07_Condition_A_Idea_Input_Error': 7/16,
+  '08_Condition_A_Evaluation': 8/16,
+  '08_Condition_A_Evaluation_Error': 8/16,
+  '08b_Condition_Transition': 8.5/16,
+  '09_Condition_B_Interface': 9/16,
+  '11_Condition_B_Idea_Input': 13/16,
+  '11_Condition_B_Idea_Input_Error': 13/16,
+  '12_Condition_B_Evaluation': 14/16,
+  '12_Condition_B_Evaluation_Error': 14/16,
+  '13_Completion': 16/16,
+};
+
+function getProgress(screenId) {
+  if (PROGRESS[screenId]) return PROGRESS[screenId];
+  if (screenId.startsWith('B_Level')) return 10/16;
+  return 0.5;
+}
+
+window.COND_B_QUESTIONS = COND_B_QUESTIONS;
+
+// ─── ROUTER ──────────────────────────────────────────────────────────────────
+function navigate(screenId) {
+  state.currentScreen = screenId;
+  render();
+  const app = document.getElementById('app');
+  const sc = app.querySelector('.scroll-content');
+  if (sc) sc.scrollTop = 0;
+  // 모바일 확대 초기화
+  if (document.activeElement) document.activeElement.blur();
+  window.scrollTo(0, 0);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  const s = state.currentScreen;
+  let html = '';
+
+  if (s === '01_Research_Consent' || s === '01_Research_Consent_Error') html = renderConsent(s);
+  else if (s === '02_Participant_Info') html = renderParticipantInfo(state.infoError || false);
+  else if (s === '02b_Experiment_Intro') html = renderExperimentIntro();
+  else if (s === '03_Task_Selection' || s === '03_Task_Selection_Error') html = renderTaskSelection(s);
+  else if (s === '04_Selected_Task_Confirm') html = renderTaskConfirm();
+  else if (s === '05_Condition_A_Interface') html = renderCondA();
+  else if (s.startsWith('06')) html = renderCondAAnswer(s);
+  else if (s === '07_Condition_A_Idea_Input' || s === '07_Condition_A_Idea_Input_Error') html = renderCondAIdea(s);
+  else if (s === '08_Condition_A_Evaluation' || s === '08_Condition_A_Evaluation_Error') html = renderCondAEval(s);
+  else if (s === '08b_Condition_Transition') html = renderCondTransition();
+  else if (s === '09_Condition_B_Interface') html = renderCondB();
+  else if (s.startsWith('B_Level')) html = renderCondBAnswer(s);
+  else if (s === '11_Condition_B_Idea_Input' || s === '11_Condition_B_Idea_Input_Error') html = renderCondBIdea(s);
+  else if (s === '12_Condition_B_Evaluation' || s === '12_Condition_B_Evaluation_Error') html = renderCondBEval(s);
+  else if (s === '13_Completion') html = renderCompletion();
+
+  app.innerHTML = html;
+  attachEvents(s);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function statusBar() {
+  return `<div class="status-bar"><span class="status-time">9:41</span><div class="status-icons"><svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="4" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8" y="0" width="3" height="12" rx="1" fill="currentColor"/><rect x="12" y="0" width="3" height="12" rx="1" fill="currentColor" opacity=".3"/></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 2.5C5.5 2.5 3.2 3.5 1.5 5.2L0 3.7C2.1 1.4 5 0 8 0s5.9 1.4 8 3.7L14.5 5.2C12.8 3.5 10.5 2.5 8 2.5z" fill="currentColor"/><path d="M8 5.5C6.5 5.5 5.1 6.1 4 7.2L2.5 5.7C4 4.3 5.9 3.5 8 3.5s4 .8 5.5 2.2L12 7.2C10.9 6.1 9.5 5.5 8 5.5z" fill="currentColor"/><circle cx="8" cy="10" r="2" fill="currentColor"/></svg><svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0" y="1" width="22" height="10" rx="2.5" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="2.5" width="17" height="7" rx="1.5" fill="currentColor"/><path d="M23.5 4v4c1.1-.5 1.5-1 1.5-2s-.4-1.5-1.5-2z" fill="currentColor" opacity=".5"/></svg></div></div>`;
+}
+
+function topNav(title, backFn, showBack = true) {
+  const progress = getProgress(state.currentScreen);
+  return `
+    ${statusBar()}
+    <div class="top-nav">
+      ${showBack ? `<div class="nav-back" onclick="${backFn}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>` : '<div class="nav-spacer"></div>'}
+      <span class="nav-title">${title}</span>
+      <div class="nav-spacer"></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.round(progress*100)}%"></div></div>
+    </div>`;
+}
+
+function choiceGroup(name, options, selectedVal, multi = false) {
+  return `<div class="choice-grid">${options.map(opt => {
+    const val = typeof opt === 'string' ? opt : opt.value;
+    const label = typeof opt === 'string' ? opt : opt.label;
+    const sel = selectedVal === val ? 'selected' : '';
+    return `<button class="choice-btn ${sel}" onclick="selectChoice('${name}','${val}',${multi})">${label}</button>`;
+  }).join('')}</div>`;
+}
+
+// ─── SCREENS ─────────────────────────────────────────────────────────────────
+
+function renderConsent(s) {
+  const isErr = s === '01_Research_Consent_Error';
+  return `<div class="screen active">
+    <div class="status-bar"><span class="status-time">9:41</span><div class="status-icons"><svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="4" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8" y="0" width="3" height="12" rx="1" fill="currentColor"/><rect x="12" y="0" width="3" height="12" rx="1" fill="currentColor" opacity=".3"/></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 2.5C5.5 2.5 3.2 3.5 1.5 5.2L0 3.7C2.1 1.4 5 0 8 0s5.9 1.4 8 3.7L14.5 5.2C12.8 3.5 10.5 2.5 8 2.5z" fill="currentColor"/><path d="M8 5.5C6.5 5.5 5.1 6.1 4 7.2L2.5 5.7C4 4.3 5.9 3.5 8 3.5s4 .8 5.5 2.2L12 7.2C10.9 6.1 9.5 5.5 8 5.5z" fill="currentColor"/><circle cx="8" cy="10" r="2" fill="currentColor"/></svg><svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0" y="1" width="22" height="10" rx="2.5" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="2.5" width="17" height="7" rx="1.5" fill="currentColor"/><path d="M23.5 4v4c1.1-.5 1.5-1 1.5-2s-.4-1.5-1.5-2z" fill="currentColor" opacity=".5"/></svg></div></div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:6px 20px 10px;flex-shrink:0;position:relative;">
+      <span style="font-size:17px;font-weight:600;color:var(--text-primary);letter-spacing:-0.4px;">연구 안내 및 동의</span>
+    </div>
+    <div class="progress-wrap" style="margin-bottom:0">
+      <div class="progress-track"><div class="progress-fill" style="width:6%"></div></div>
+    </div>
+    <div class="scroll-wrap"><div class="scroll-content" style="padding-top:24px">
+      <div style="font-size:26px;font-weight:800;color:var(--text-primary);letter-spacing:-0.8px;line-height:1.3;margin-bottom:8px">창의지원 AI 후속질문<br>인터페이스 실험</div>
+      <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.65;letter-spacing:-0.2px;margin-bottom:22px">생성형 AI의 후속질문 유형이 아이디어 발상에 미치는 영향을 확인하기 위한 예비조사입니다.</div>
+
+      <div class="card" style="margin-bottom:10px;background:var(--surface);border-color:var(--border-light)">
+        <div class="card-label">연구 소개</div>
+        <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.7;letter-spacing:-0.2px">생성형 AI 인터페이스에서 제시되는 질문 유형이 사용자의 사고 확장과 아이디어 다양성에 어떤 영향을 주는지 확인하기 위한 연구입니다.</div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;background:var(--surface);border-color:var(--border-light)">
+        <div class="card-label">참여 안내</div>
+        <ul style="list-style:disc;padding-left:16px;margin-top:6px">
+          <li style="font-size:13.5px;color:var(--text-tertiary);line-height:1.7;letter-spacing:-0.2px;margin-bottom:4px">실험은 약 10–15분 정도 소요됩니다.</li>
+          <li style="font-size:13.5px;color:var(--text-tertiary);line-height:1.7;letter-spacing:-0.2px;margin-bottom:4px">응답 내용은 연구 목적으로만 사용되며, 개인을 식별할 수 있는 정보는 수집하지 않습니다.</li>
+          <li style="font-size:13.5px;color:var(--text-tertiary);line-height:1.7;letter-spacing:-0.2px">참여자는 언제든지 중단할 수 있습니다.</li>
+        </ul>
+      </div>
+
+      <div class="consent-check-row" onclick="toggleConsent()" style="border-top:1px solid var(--border-light);padding-top:16px">
+        <div class="custom-check${state.consent ? ' checked' : ''}" id="check-box"></div>
+        <span class="check-label">위 내용을 확인했으며 연구 참여에 동의합니다.</span>
+      </div>
+      ${isErr ? `<div class="error-msg visible">연구 참여에 동의하셔야 실험을 시작할 수 있습니다.</div>` : ''}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitConsent()">동의하고 시작하기</button>
+    </div>
+  </div>`;
+}
+
+function renderParticipantInfo(showErr = false) {
+  const i = state.info;
+  const err = showErr;
+  return `<div class="screen active">
+    ${topNav('기본 정보 입력', "navigate('01_Research_Consent')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">기본 정보 입력</div>
+      <div class="section-subtitle">연구 분석에 필요한 최소한의 기본 정보만 선택해 주세요. 실명, 전화번호, 주소 등 직접 식별 가능한 정보는 수집하지 않습니다.</div>
+
+      <div class="form-group">
+        <label class="form-label">연령대</label>
+        ${choiceGroup('age', ['10대','20대','30대','40대','50대 이상','응답하지 않음'], i.age)}
+        ${err && !i.age ? '<div class="error-msg visible">연령대를 선택해 주세요.</div>' : ''}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">성별</label>
+        ${choiceGroup('gender', ['남성','여성','기타'], i.gender)}
+        ${err && !i.gender ? '<div class="error-msg visible">성별을 선택해 주세요.</div>' : ''}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">현재 신분</label>
+        ${choiceGroup('status', ['대학생','대학원생','직장인','프리랜서','기타'], i.status)}
+        ${err && !i.status ? '<div class="error-msg visible">현재 신분을 선택해 주세요.</div>' : ''}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">생성형 AI 사용 빈도</label>
+        ${choiceGroup('aiFreq', ['거의 사용하지 않음','월 1–2회','주 1–2회','주 3회 이상','거의 매일'], i.aiFreq)}
+        ${err && !i.aiFreq ? '<div class="error-msg visible">AI 사용 빈도를 선택해 주세요.</div>' : ''}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">디자인 또는 창작 관련 경험</label>
+        ${choiceGroup('designExp', ['없음','취미 수준','전공 또는 교육 경험 있음','실무 경험 있음'], i.designExp)}
+        ${err && !i.designExp ? '<div class="error-msg visible">창작 관련 경험을 선택해 주세요.</div>' : ''}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">이메일 주소 <span style="font-weight:400;color:var(--text-tertiary);font-size:12px">선택 입력</span></label>
+        <input class="text-input" type="email" id="email-input" placeholder="example@email.com" value="${i.email}" oninput="state.info.email=this.value">
+        <div class="form-hint">보상 지급 또는 추후 연구 안내가 필요한 경우에만 선택적으로 입력해 주세요. 이메일을 입력하지 않아도 실험 참여는 가능합니다.</div>
+      </div>
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitParticipantInfo()">다음으로</button>
+    </div>
+  </div>`;
+}
+
+function renderExperimentIntro() {
+  return `<div class="screen active">
+    ${topNav('실험 안내', "navigate('02_Participant_Info')")}
+    <div class="scroll-wrap"><div class="scroll-content" style="padding-top:16px">
+
+      <div style="font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-0.6px;line-height:1.3;margin-bottom:6px">실험 진행 방법 안내</div>
+      <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.65;letter-spacing:-0.2px;margin-bottom:22px">본격적인 실험 시작 전, 전체 진행 흐름을 미리 확인해 주세요.</div>
+
+      <div class="card" style="margin-bottom:10px;background:var(--surface);border-color:var(--border-light)">
+        <div class="card-label">실험 구성</div>
+        <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.75;letter-spacing:-0.2px">
+          이 실험은 두 가지 조건의 AI 인터페이스를 순서대로 경험하는 방식으로 구성됩니다.
+          각 조건에서는 동일한 과제를 바탕으로 AI가 제시하는 질문을 활용해 아이디어를 발전시키고, 짧은 평가를 완료하게 됩니다.
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:10px;background:var(--surface);border-color:var(--border-light)">
+        <div class="card-label">진행 순서</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--border-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">1</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.2px;margin-bottom:2px">질문 선택</div>
+              <div style="font-size:12.5px;color:var(--text-tertiary);line-height:1.6;letter-spacing:-0.1px">4가지 주제 중 AI에게 탐색할 질문을 하나 선택합니다.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--border-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">2</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.2px;margin-bottom:2px">조건 A — AI 질문 탐색 & 아이디어 작성</div>
+              <div style="font-size:12.5px;color:var(--text-tertiary);line-height:1.6;letter-spacing:-0.1px">AI가 제시하는 후속 질문을 확인하고, 아이디어를 자유롭게 작성합니다.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--border-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">3</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.2px;margin-bottom:2px">조건 A 평가</div>
+              <div style="font-size:12.5px;color:var(--text-tertiary);line-height:1.6;letter-spacing:-0.1px">5개 문항에 간단히 응답합니다.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--border-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">4</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.2px;margin-bottom:2px">조건 B — AI 질문 탐색 & 아이디어 작성</div>
+              <div style="font-size:12.5px;color:var(--text-tertiary);line-height:1.6;letter-spacing:-0.1px">질문 확장 수준을 조절하며 AI 질문을 탐색하고, 아이디어를 작성합니다.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--border-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">5</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.2px;margin-bottom:2px">조건 B 평가 & 완료</div>
+              <div style="font-size:12.5px;color:var(--text-tertiary);line-height:1.6;letter-spacing:-0.1px">5개 문항 응답 후 실험이 종료됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;background:var(--surface);border-color:var(--border-light)">
+        <div class="card-label">유의 사항</div>
+        <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.75;letter-spacing:-0.2px">
+          정답이 있는 실험이 아닙니다. 떠오르는 생각을 자유롭게 작성해 주세요.
+          AI의 질문은 참고용이며, 반드시 활용하지 않아도 됩니다.
+        </div>
+      </div>
+
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="navigate('03_Task_Selection')">질문 선택하기</button>
+    </div>
+  </div>`;
+}
+
+function renderTaskSelection(s) {
+  const isErr = s === '03_Task_Selection_Error';
+  return `<div class="screen active">
+    ${topNav('질문 선택', "navigate('02_Participant_Info')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">AI에게 물어볼<br>질문 선택</div>
+      <div class="section-subtitle">아래 4가지 질문 중 가장 흥미롭거나 아이디어를 떠올리기 쉬운 질문 하나를 선택해 주세요.</div>
+      ${TASKS.map(t => `
+        <div class="task-card ${state.selectedTask === t.id ? 'selected' : ''}" onclick="selectTask(${t.id})">
+          <div class="check-badge"></div>
+          <div class="task-num">주제 ${t.id}</div>
+          <div class="task-name">${t.name}</div>
+          <div class="task-desc">${t.shortDesc}</div>
+        </div>`).join('')}
+      ${isErr ? `<div class="error-msg visible">탐색할 주제를 하나 선택해 주세요.</div>` : ''}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitTask()">다음으로</button>
+    </div>
+  </div>`;
+}
+
+function renderTaskConfirm() {
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  return `<div class="screen active">
+    ${topNav('선택 질문 확인', "navigate('03_Task_Selection')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">선택한 질문</div>
+      <div class="section-subtitle">아래 주제를 기반으로 AI와 함께 탐색합니다. 확인 후 시작해 주세요.</div>
+      <div style="background:#f0f4ff;border:1.5px solid #4a7cdc;border-left:4px solid #4a7cdc;border-radius:12px;padding:18px 16px;margin-bottom:16px;position:relative;">
+        <div style="font-size:11px;font-weight:600;color:#4a7cdc;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">선택 주제</div>
+        <div style="font-size:17px;font-weight:700;color:var(--text-primary);letter-spacing:-0.4px;padding-right:36px">${task.name}</div>
+        <div style="position:absolute;top:16px;right:14px;width:24px;height:24px;background:#4a7cdc;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <div style="width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(40deg) translateY(-1px)"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;letter-spacing:-0.1px">
+        이제 두 가지 조건의 AI 인터페이스를 순서대로 경험하게 됩니다.<br>각 조건에서 AI가 제시하는 질문을 활용해 아이디어를 자유롭게 작성해 주세요.
+      </div>
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="navigate('05_Condition_A_Interface')">조건 A 시작하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondA() {
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  return `<div class="screen active">
+    ${topNav('조건 A', "navigate('04_Selected_Task_Confirm')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="info-badge">조건 A</div>
+      <div class="section-title" style="padding-top:0">AI와 함께 탐색하기</div>
+      <div class="card" style="margin-bottom:10px;border-left:3px solid var(--accent)">
+        <div class="card-label">선택 주제</div>
+        <div class="card-text" style="font-weight:600;margin-bottom:8px">${task.name}</div>
+        <div class="card-text" style="color:var(--text-primary);font-size:14px;line-height:1.7;font-style:italic">${task.desc}</div>
+      </div>
+      <div class="ai-card" style="margin-bottom:16px">
+        <div class="ai-card-title">AI 기본 응답</div>
+        <div class="ai-card-body">${TASK_AI_RESPONSE[state.selectedTask]}</div>
+      </div>
+      <div class="q-section-header">
+        <div class="q-section-dot"></div>
+        <div class="q-section-label">후속 질문</div>
+      </div>
+      <div style="font-size:12.5px;color:var(--text-tertiary);margin-bottom:12px;letter-spacing:-0.1px">질문을 선택하면 AI 응답을 확인할 수 있습니다.</div>
+      ${COND_A_QUESTIONS.map(q => `
+        <div class="q-card" onclick="navigate('${q.screen}')">
+          <div style="flex:1">
+            <div class="q-card-text">${q.text}</div>
+          </div>
+          <div class="q-card-arrow">›</div>
+        </div>`).join('')}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="navigate('07_Condition_A_Idea_Input')">아이디어 작성하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondAAnswer(screenId) {
+  const qMap = { '06A_A_Answer_Detail': 0, '06B_A_Answer_Case': 1, '06C_A_Answer_Alternative': 2, '06D_A_Answer_ProsCons': 3 };
+  const qi = qMap[screenId];
+  const q = COND_A_QUESTIONS[qi];
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  const taskId = state.selectedTask;
+  const taskAnswers = {
+    1: {
+      0: '선택하신 과제인 온라인 창작 지원 서비스를 좀 더 구체적으로 살펴보겠습니다.\n\n이 서비스의 핵심은 세 단계 구조입니다. 첫째, 사용자가 창작 주제나 키워드를 입력하면 AI가 관련 개념과 연결 가능한 소재를 함께 탐색합니다. 둘째, AI는 "이 주제를 다른 독자에게 전달한다면?"처럼 새로운 관점을 열어주는 질문을 제시합니다. 셋째, 초안이 나오면 문체·구조·독자 반응 예측 등의 피드백을 제공합니다.\n\n창작의 막막함(Blank Page Syndrome)을 줄이는 것이 이 서비스의 출발점입니다.',
+      1: '유사한 방향의 서비스 사례를 참고할 수 있습니다.\n\n사례 1: Notion AI는 문서 작성 흐름 안에서 초안·요약·재구성을 즉시 제공합니다.\n사례 2: Adobe Firefly는 텍스트 설명으로 시각 초안을 만들고, 수정 방향을 AI와 협의하는 방식입니다.\n사례 3: 뤼튼(Wrtn)은 글쓰기·기획서·카피 작성 시 사용자 의도를 분석해 문체와 방향을 조정합니다.\n\n공통점은 AI가 결과물을 대신 만드는 것이 아니라, 창작 과정에서 사용자의 생각을 끌어내고 반응하는 협업 구조라는 점입니다.',
+      2: '다른 방향의 접근법을 제안합니다.\n\n방법 1 — 질문 기반 발산: AI가 답 대신 연속 질문을 던져 사용자 스스로 아이디어를 전개하는 소크라테스식 구조\n방법 2 — 역할 기반 피드백: AI가 편집자·독자·비평가 역할을 바꿔가며 동일한 초안에 대해 다양한 시각을 제공\n방법 3 — 맥락 큐레이션: 사용자의 창작 이력을 학습해 개인화된 레퍼런스와 영감을 능동적으로 추천\n방법 4 — 공동 창작 모드: 사용자와 AI가 교대로 문장을 써나가는 핑퐁(Ping-Pong) 방식의 협업 저술',
+      3: '이 아이디어의 장단점을 정리합니다.\n\n장점\n• 창작 초기 심리적 저항을 낮추고 시작을 쉽게 만듦\n• 사용자 혼자 떠올리기 어려운 다각도 관점 제공\n• 반복적 피드백으로 결과물 완성도 향상\n• 개인 창작자부터 팀까지 확장 가능\n\n단점\n• AI 의존도가 높아지면 창작자 고유 목소리가 희석될 위험\n• 생성 콘텐츠의 저작권 귀속 문제가 법적으로 불명확\n• AI 제안을 무비판적으로 수용 시 창의성 저하 가능\n• 고품질 AI 서비스의 비용이 개인 사용자에게 진입 장벽이 될 수 있음',
+    },
+    2: {
+      0: '시간 관리 / 집중 지원 서비스를 구체적으로 살펴보겠습니다.\n\n이 서비스는 단순 일정 앱과 달리 세 가지 축으로 구성됩니다. 첫째, 사용자의 시간 사용 데이터를 수집해 집중 패턴과 반복적으로 미루는 업무 유형을 분석합니다. 둘째, AI는 분석 결과를 바탕으로 "오늘 오후 2시 집중도가 낮았던 이유는 무엇이었나요?"처럼 행동 이해를 돕는 질문을 제시합니다. 셋째, 포모도로·시간 블록·역방향 계획 중 사용자 패턴에 맞는 전략을 추천합니다.',
+      1: '유사한 서비스 사례를 참고할 수 있습니다.\n\n사례 1: Todoist는 반복 작업과 우선순위 기반 일정 관리에서 AI 제안 기능을 통합하고 있습니다.\n사례 2: Motion은 사용자 캘린더를 분석해 자동으로 작업 블록을 최적 배치합니다.\n사례 3: Focusmate는 원격 파트너와 함께하는 집중 세션으로 책임감을 통해 집중력을 높입니다.\n\n공통점은 단순 알림이 아니라 사용자의 행동 패턴을 분석해 맥락에 맞는 전략을 제안하는 방식입니다.',
+      2: '다른 방향의 접근법을 제안합니다.\n\n방법 1 — 집중 방해 요인 추적: AI가 집중이 끊어지는 시점을 기록하고 패턴을 시각화\n방법 2 — 에너지 기반 계획: 하루 에너지 곡선을 학습해 고난도 업무를 집중력 피크 시간에 자동 배치\n방법 3 — 마이크로 목표 설계: 큰 과제를 15분 단위로 분할해 완료감을 자주 느끼게 하는 구조\n방법 4 — 루틴 실험 모드: 새로운 집중 전략을 1주 단위로 실험하고 효과를 AI가 비교 리포트',
+      3: '이 아이디어의 장단점을 정리합니다.\n\n장점\n• 사용자 스스로 인식하지 못하던 집중 패턴을 데이터로 가시화\n• 일정 관리와 집중 지원이 통합된 올인원 경험\n• 개인화된 전략 추천으로 획일적 조언의 한계 극복\n• 반복 사용 시 사용자 패턴 학습으로 정확도 향상\n\n단점\n• 지속적 데이터 수집에 대한 사용자 프라이버시 우려\n• 과도한 측정이 오히려 자율성과 창의성을 저해할 수 있음\n• 데이터 기반 추천이 오히려 유연한 계획 변경을 어렵게 만들 가능성\n• 비사용 시 데이터 공백으로 분석 정확도 저하',
+    },
+    3: {
+      0: '건강한 생활 습관 지원 서비스를 구체적으로 살펴보겠습니다.\n\n이 서비스는 건강 앱과 달리 세 단계로 차별화됩니다. 첫째, 식습관·운동·수면 데이터를 수집해 사용자의 반복 패턴을 분석합니다. 둘째, AI는 "야식을 먹는 시간과 그날 스트레스 수준은 어떤 관계가 있나요?"처럼 행동의 맥락을 되짚는 질문을 제시합니다. 셋째, 단순 추천이 아니라 사용자가 스스로 변화의 이유를 발견하게 돕는 것이 핵심입니다.',
+      1: '유사한 서비스 사례를 참고할 수 있습니다.\n\n사례 1: 눔(Noom)은 칼로리 추적을 넘어 심리적 식습관 패턴 분석과 코칭을 결합합니다.\n사례 2: Oura Ring은 수면 데이터를 기반으로 회복 지수와 일일 준비도를 제공합니다.\n사례 3: Fabulous는 습관 형성을 과학적 원리(행동 설계) 기반으로 단계적으로 안내합니다.\n\n공통점은 데이터 수집 자체보다, 사용자가 자신의 행동과 결과 사이의 관계를 이해하도록 돕는 데 초점을 맞춘다는 것입니다.',
+      2: '다른 방향의 접근법을 제안합니다.\n\n방법 1 — 환경 설계 제안: 식습관·운동 습관보다 환경(냉장고 구성, 동선 등)을 먼저 바꾸도록 유도\n방법 2 — 작은 실험 모드: 하나의 습관을 7일 단위로 실험하고 체감 변화를 기록하는 마이크로 챌린지\n방법 3 — 맥락 연결 분석: 수면·음식·운동 데이터를 감정·날씨·업무 강도와 연결해 복합적 원인 분석\n방법 4 — 역방향 설계: 원하는 상태를 먼저 정의하고, 거기서부터 현재 행동을 역으로 분석하는 접근',
+      3: '이 아이디어의 장단점을 정리합니다.\n\n장점\n• 사용자가 자신의 행동 패턴을 객관적 데이터로 이해 가능\n• 단순 정보 제공이 아닌 자기 이해 중심의 구조로 지속 동기 유지\n• 식습관·운동·수면의 상호작용을 통합적으로 분석 가능\n• 반복 사용으로 개인화 정밀도 향상\n\n단점\n• 민감한 건강 데이터 수집으로 프라이버시 우려 높음\n• 과도한 자기 측정이 건강 불안을 오히려 증가시킬 수 있음\n• 데이터 해석 오류 시 잘못된 행동 변화를 유도할 위험\n• 생활 패턴이 불규칙한 사용자에게는 분석 정확도 낮아짐',
+    },
+    4: {
+      0: '지역 커뮤니티 문제 해결 서비스를 구체적으로 살펴보겠습니다.\n\n이 서비스는 민원 접수 플랫폼과 달리 세 단계로 확장됩니다. 첫째, 주민이 불편을 제보하면 AI가 유사 사례·관련 이해관계자·발생 원인을 함께 분석합니다. 둘째, "이 문제로 가장 직접적인 영향을 받는 사람은 누구인가?", "비슷한 문제를 다른 지역은 어떻게 해결했나?" 같은 질문으로 시각을 확장합니다. 셋째, 주민 참여형 해결안 투표와 AI 실현 가능성 평가를 결합합니다.',
+      1: '유사한 서비스 사례를 참고할 수 있습니다.\n\n사례 1: 서울시 민주주의 서울은 시민 제안을 수집하고 공감 수에 따라 정책 검토 대상으로 선정합니다.\n사례 2: FixMyStreet(영국)는 지역 문제를 지도 기반으로 신고하고 담당 기관과 연결합니다.\n사례 3: Pol.is는 AI가 의견 클러스터를 분석해 합의 가능한 지점을 시각화합니다.\n\n공통점은 개인 신고를 집단 인식과 공론화로 전환하는 구조입니다.',
+      2: '다른 방향의 접근법을 제안합니다.\n\n방법 1 — 이해관계자 맵: AI가 문제 관련 이해관계자와 각자의 입장을 시각화해 갈등 구조 이해 지원\n방법 2 — 해결안 시뮬레이션: 제안된 해결책이 실행될 경우 예상 효과와 부작용을 AI가 시나리오로 제시\n방법 3 — 우선순위 투표: 주민이 여러 문제 중 가장 시급한 것을 투표하고 AI가 자원 배분을 제안\n방법 4 — 연결 플랫폼: 비슷한 문제를 겪는 다른 지역과 연결해 해결 경험을 공유하는 크로스 커뮤니티',
+      3: '이 아이디어의 장단점을 정리합니다.\n\n장점\n• 주민 참여를 단순 신고에서 능동적 해결 과정으로 전환\n• AI 분석으로 감정적 민원을 구조화된 문제 정의로 변환\n• 다양한 이해관계자 시각을 통합해 더 공정한 해결안 도출\n• 지역별 데이터 누적으로 유사 문제 예측 및 사전 대응 가능\n\n단점\n• 디지털 접근성이 낮은 고령·취약 계층의 참여가 제한될 수 있음\n• 소수 적극적 주민의 의견이 대표성을 왜곡할 위험\n• 행정 기관과의 연계 없이는 제안이 실행으로 이어지지 않음\n• 민감한 지역 갈등 데이터 관리에 대한 신뢰 구축이 선행되어야 함',
+    },
+  };
+  const answers = taskAnswers[taskId] || taskAnswers[1];
+  return `<div class="screen active">
+    ${topNav('조건 A', "navigate('05_Condition_A_Interface')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="selected-q-card">
+        <div class="selected-q-label">선택한 질문</div>
+        <div class="selected-q-text">${q.text}</div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-title">AI 응답</div>
+        <div class="ai-card-body">${answers[qi].split('\n').map(l => l ? `<p style="margin-bottom:8px">${l}</p>` : '<br>').join('')}</div>
+      </div>
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-outline" onclick="navigate('05_Condition_A_Interface')">질문 목록으로 돌아가기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondAIdea(s) {
+  const isErr = s === '07_Condition_A_Idea_Input_Error';
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  return `<div class="screen active">
+    ${topNav('조건 A 아이디어 작성', "navigate('05_Condition_A_Interface')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">아이디어 작성</div>
+      <div class="section-subtitle">앞서 확인한 AI의 후속질문과 응답을 참고해 <span style="font-weight:600;color:var(--text-primary)">'${task.name}'</span>에 대해 떠오른 아이디어를 자유롭게 작성해 주세요.</div>
+      <div class="textarea-wrap">
+        <textarea class="text-textarea${isErr ? ' error-input' : ''}" id="idea-a" placeholder="떠오른 아이디어를 자유롭게 작성해 주세요." maxlength="1000" oninput="updateCharCount('idea-a','count-a',1000)">${state.condAIdea}</textarea>
+        <span class="char-count" id="count-a">${state.condAIdea.length}/1000</span>
+      </div>
+      ${isErr ? `<div class="error-msg visible">아이디어를 작성해야 다음 단계로 진행할 수 있습니다.</div>` : ''}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitCondAIdea()">조건 A 평가하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondAEval(s) {
+  const isErr = s === '08_Condition_A_Evaluation_Error';
+  return `<div class="screen active">
+    ${topNav('조건 A 평가', "navigate('07_Condition_A_Idea_Input')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">조건 A 평가</div>
+      <div class="section-subtitle">각 항목에 대해 1(전혀 그렇지 않다)부터 5(매우 그렇다) 중 하나를 선택해 주세요.</div>
+      ${isErr ? `<div class="error-msg visible" style="margin-bottom:12px">모든 평가 항목에 응답해야 다음 단계로 진행할 수 있습니다.</div>` : ''}
+      ${EVAL_QUESTIONS.map((q, i) => {
+        const evalErr = isErr && !state.condAEval[i];
+        return `<div class="eval-item${evalErr ? ' error-item' : ''}">
+          <div class="eval-q">${i+1}. ${q}</div>
+          <div class="eval-scale">
+            <div class="eval-labels"><span>전혀 그렇지 않다</span><span>매우 그렇다</span></div>
+            <div class="eval-nums">
+              ${[1,2,3,4,5].map(n => `<div class="eval-num${state.condAEval[i]===n?' selected':''}" onclick="selectEval('A',${i},${n})">${n}</div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitCondAEval()">조건 B 시작하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondTransition() {
+  return `<div class="screen active">
+    ${topNav('조건 전환', '', false)}
+    <div class="scroll-wrap"><div class="scroll-content" style="padding-top:32px">
+
+      <div style="margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div style="width:32px;height:32px;border-radius:50%;background:#f0f6f0;border:1.5px solid #b8d8b8;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="#4a8c4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#4a8c4a;font-weight:600;letter-spacing:0.2px;text-transform:uppercase;margin-bottom:2px">완료</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);letter-spacing:-0.3px">조건 A 탐색 및 아이디어 작성</div>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border-light);margin:0 0 20px 20px"></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:#1A1A1A;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-size:13px;font-weight:700;color:white">B</span>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-tertiary);font-weight:600;letter-spacing:0.2px;text-transform:uppercase;margin-bottom:2px">다음 단계</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);letter-spacing:-0.3px">조건 B 탐색 및 아이디어 작성</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="background:var(--surface);border-color:var(--border-light);margin-bottom:10px">
+        <div class="card-label">조건 B 안내</div>
+        <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.75;letter-spacing:-0.2px">이번에는 질문의 확장 수준을 직접 조절하며 AI의 후속질문을 탐색하게 됩니다. 슬라이더로 단계를 선택하면 그에 맞는 후속질문이 제시됩니다.</div>
+      </div>
+
+      <div class="card" style="background:var(--surface);border-color:var(--border-light);margin-bottom:20px">
+        <div class="card-label">유의 사항</div>
+        <div style="font-size:13.5px;color:var(--text-tertiary);line-height:1.75;letter-spacing:-0.2px">조건 A와 동일한 주제로 진행됩니다. 앞서 작성한 아이디어와 다른 방향으로 자유롭게 발전시켜 주세요.</div>
+      </div>
+
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="navigate('09_Condition_B_Interface')">조건 B 시작하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondB() {
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  const level = state.condBLevel;
+  const questions = COND_B_QUESTIONS[level];
+  const fillPct = ((level - 1) / 4) * 100;
+  return `<div class="screen active">
+    ${topNav('조건 B', "navigate('08_Condition_A_Evaluation')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="info-badge">조건 B</div>
+      <div class="section-title" style="padding-top:0">AI와 함께 탐색하기</div>
+      <div class="card" style="margin-bottom:10px;border-left:3px solid var(--accent)">
+        <div class="card-label">선택 주제</div>
+        <div class="card-text" style="font-weight:600;margin-bottom:8px">${task.name}</div>
+        <div class="card-text" style="color:var(--text-primary);font-size:14px;line-height:1.7;font-style:italic">${task.desc}</div>
+      </div>
+      <div class="ai-card" style="margin-bottom:16px">
+        <div class="ai-card-title">AI 기본 응답</div>
+        <div class="ai-card-body">${TASK_AI_RESPONSE[state.selectedTask]}</div>
+      </div>
+      <div class="slider-section">
+        <div class="slider-label">질문 확장 수준</div>
+        <div class="slider-desc">단계를 높일수록 더 새로운 관점의 후속질문이 제시됩니다.</div>
+        <div class="slider-wrapper" style="padding:12px 0 4px">
+          <div class="slider-track" id="slider-track" style="position:relative;margin:8px 10px;cursor:pointer"
+            onclick="handleSliderClick(event)"
+            ontouchstart="handleSliderTouch(event)"
+            ontouchmove="handleSliderTouch(event)"
+            ontouchend="handleSliderTouchEnd(event)">
+            <div class="slider-fill" id="slider-fill" style="width:${fillPct}%"></div>
+            <div class="slider-thumb" id="slider-thumb" style="left:${fillPct}%"></div>
+          </div>
+          <div class="slider-steps">
+            ${[1,2,3,4,5].map(n => `<div class="slider-step${n===level?' active':''}" onclick="setLevel(${n})">${n}</div>`).join('')}
+          </div>
+          <div class="slider-end-labels">
+            <span class="slider-end-label">친숙한 질문</span>
+            <span class="slider-end-label">도전적 질문</span>
+          </div>
+        </div>
+      </div>
+      <div class="q-section-header">
+        <div class="q-section-dot"></div>
+        <div class="q-section-label">후속 질문 — ${level}단계</div>
+      </div>
+      <div style="font-size:12.5px;color:var(--text-tertiary);margin-bottom:12px;letter-spacing:-0.1px">질문을 선택하면 AI 응답을 확인할 수 있습니다.</div>
+      <div id="b-question-list">${questions.map(q => `
+        <div class="q-card" onclick="navigate('${q.screen}')">
+          <div style="flex:1">
+            <div class="q-card-text">${q.text}</div>
+          </div>
+          <div class="q-card-arrow">›</div>
+        </div>`).join('')}</div>
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="navigate('11_Condition_B_Idea_Input')">아이디어 작성하기</button>
+    </div>
+  </div>`;
+}
+
+// All B answers data
+const B_ANSWERS = {
+  'B_Level1_Q1_Answer': { q: '이 서비스를 다른 사용자 집단이 사용한다면 무엇이 달라질까?', a: '선택하신 과제의 사용자를 바꿔서 생각해보면 서비스의 핵심이 더 선명해집니다. 예를 들어 창작 지원 서비스라면 성인 작가 대신 초등학생이 사용할 때, 시간 관리 서비스라면 직장인 대신 수험생이 사용할 때 필요한 기능이 완전히 달라집니다. 인터페이스 복잡도, 언어 수준, 목표 설정 방식이 모두 재설계되어야 합니다. 어떤 집단으로 이동했을 때 서비스의 핵심 가치가 가장 선명하게 드러나는지 생각해 보세요.' },
+  'B_Level1_Q2_Answer': { q: '이 아이디어에 하나의 보조 기능을 추가한다면 무엇이 좋을까?', a: '가장 자연스럽게 추가할 수 있는 보조 기능은 "활동 이력 타임라인"입니다. 사용자가 AI와 나눈 대화, 선택한 질문, 작성한 아이디어를 시간 순으로 저장해 다시 꺼내볼 수 있게 합니다. 이 기능은 "예전에 떠올렸던 좋은 아이디어가 기억나지 않는다"는 공통된 문제를 해결합니다. AI가 이력을 분석해 사용자가 자주 막히는 지점, 잘 활용하는 질문 유형, 발전 가능성이 높은 아이디어를 시각화해 줄 수도 있습니다.' },
+  'B_Level1_Q3_Answer': { q: '사용자가 처음 이 서비스를 접할 때 가장 필요한 도움은 무엇일까?', a: '처음 접하는 사용자의 가장 큰 장벽은 "어떻게 시작하면 되는지 모른다"는 막막함입니다. 온보딩에서 사용자의 목적과 경험 수준을 짧게 파악한 후, AI가 먼저 질문을 던져 대화를 시작하는 방식이 효과적입니다. 빈 화면 앞에서 무언가를 입력해야 한다는 부담 대신, "오늘 가장 해결하고 싶은 문제를 한 문장으로 말해보세요" 같은 가이드 질문으로 시작하는 구조가 초기 이탈을 줄이는 핵심입니다.' },
+  'B_Level1_Q4_Answer': { q: '이 서비스가 더 쉽게 사용되려면 어떤 부분을 바꿔야 할까?', a: '사용성을 높이려면 먼저 입력 방식의 진입 장벽을 낮춰야 합니다. 긴 문장 입력 대신 키워드 태그, 선택형 옵션, 슬라이더로 의도를 전달하게 하면 시작이 쉬워집니다. AI 응답도 짧은 요약과 상세 보기를 분리해 정보 과잉으로 인한 인지 부담을 줄일 수 있습니다. 저장·공유·다음 단계 이동 등 핵심 동선은 3탭 이내로 설계하는 것이 모바일 환경에서 특히 중요합니다.' },
+  'B_Level2_Q1_Answer': { q: '사용자가 아니라 운영자의 관점에서 이 서비스를 다시 본다면 무엇이 중요할까?', a: '운영자 관점에서는 접속 수보다 "사용자가 얼마나 깊이 서비스를 활용하는가"가 핵심 지표입니다. 세션당 AI 상호작용 횟수, 기능 완료율, 재방문 주기가 중요합니다. AI 응답의 품질을 모니터링하고, 편향되거나 부적절한 응답에 빠르게 개입할 수 있는 관리 도구도 필요합니다. 수익 모델 측면에서는 무료-유료 전환 시점과 핵심 가치 기능의 경계를 명확히 해야 운영 지속성이 확보됩니다.' },
+  'B_Level2_Q2_Answer': { q: '이 서비스를 처음 쓰는 사람과 자주 쓰는 사람의 경험은 어떻게 달라질까?', a: '처음 쓰는 사용자는 가능성을 탐색하는 단계입니다. 이들에게는 안내, 예시, 작은 성공 경험이 핵심입니다. 자주 쓰는 사용자는 서비스 구조를 이미 이해했으므로 단계를 건너뛰는 빠른 경로, 개인화된 기본값, 더 깊은 기능이 필요합니다. 두 유형을 동시에 만족시키려면 사용 횟수에 따라 인터페이스 복잡도와 정보량이 자동 조절되는 "적응형 UI"가 효과적입니다.' },
+  'B_Level2_Q3_Answer': { q: '이 서비스가 개인이 아니라 집단을 대상으로 한다면 어떤 기능이 필요할까?', a: '집단 맥락에서는 동시 편집, 역할 분담, 아이디어 투표 같은 협업 기능이 핵심이 됩니다. AI는 여러 사람의 의견을 종합해 합의점을 찾거나 의견 차이를 시각화하는 퍼실리테이터 역할을 맡을 수 있습니다. 교실 환경이라면 교사가 학생 진행 상황을 한눈에 보는 대시보드, 팀 환경이라면 기여자별 이력과 버전 관리가 중요합니다. 개인과 달리 집단에서는 프로세스의 투명성과 참여 공정성이 설계의 핵심 조건이 됩니다.' },
+  'B_Level2_Q4_Answer': { q: '이 아이디어를 교육, 공공, 커뮤니티 중 하나의 맥락으로 옮기면 무엇이 바뀔까?', a: '교육 맥락으로 옮기면 AI의 역할이 "대신 해주는 것"에서 "스스로 생각하게 돕는 것"으로 바뀝니다. 학생의 사고 과정을 기록하고 교사가 확인하는 구조가 핵심이 됩니다. 공공 맥락에서는 전문 지식 없이도 사용 가능한 접근성이 최우선이 됩니다. 커뮤니티 맥락에서는 개인의 결과물이 다른 구성원의 반응과 기여로 발전하는 소셜 레이어가 추가되어, 개인 서비스에서 집단 지성 플랫폼으로 변모합니다.' },
+  'B_Level3_Q1_Answer': { q: '이 서비스를 병원 대기 시스템과 연결해 생각한다면 어떤 기능이 나올까?', a: '병원 대기 시스템의 핵심은 "불확실한 시간을 의미 있는 활동으로 채우는 것"입니다. 이를 선택한 서비스에 적용하면, 사용자가 응답을 기다리는 동안 "오늘의 목표 설정", "이전 활동 되돌아보기", "관련 자료 미리 탐색" 같은 준비 활동을 자동으로 제안하는 기능이 나옵니다. 병원의 증상 사전 입력처럼 서비스 시작 전 사용자가 "지금 막힌 지점"과 "원하는 방향"을 미리 입력하면 AI가 더 정교한 첫 응답을 제공할 수 있습니다.' },
+  'B_Level3_Q2_Answer': { q: '이 아이디어를 게임의 레벨업 구조와 결합하면 어떤 경험이 될까?', a: '게임 레벨업 구조를 적용하면, 서비스 활동이 "달성 가능한 작은 목표의 연속"으로 재편됩니다. 초보자는 간단한 과제부터 시작해 단계별로 난이도가 올라가는 구조입니다. 각 레벨 완료 시 AI가 해당 단계 역량을 분석해 "다음 도전 과제"를 제안합니다. 흥미로운 점은 레벨이 높아질수록 AI의 힌트가 줄어들고 사용자 자율성이 높아지는 역방향 지원 구조입니다. 의존도를 낮추면서 숙련도를 높이는 교육적 효과가 있습니다.' },
+  'B_Level3_Q3_Answer': { q: '이 서비스를 도서관, 시장, 지하철 같은 일상 공간에 비유하면 무엇이 달라질까?', a: '도서관 비유: 조용하고 체계적, 사용자가 스스로 탐색하며 AI는 사서처럼 요청 시에만 개입합니다. 시장 비유: 다양한 가능성이 공존하고 사용자가 원하는 것을 조합·교환하며 AI는 적극적으로 샘플을 제안합니다. 지하철 비유: 목적지가 정해져 있고 AI가 최적 경로를 안내하며 사용자는 정류장마다 결과물을 축적합니다. 이 세 비유는 AI의 개입 방식과 UX 구조를 결정하는 메타포로, 어떤 공간에 가까울수록 이 서비스의 핵심 가치가 선명해지는지 생각해보세요.' },
+  'B_Level3_Q4_Answer': { q: '이 과제를 날씨 예보처럼 다룬다면 AI는 무엇을 예측하거나 알려줄 수 있을까?', a: '날씨 예보 방식을 적용하면 AI가 사용자의 과거 데이터를 기반으로 "오늘의 컨디션 예보"를 제공할 수 있습니다. 예: "지난 3일간 오후 2~4시에 가장 집중도가 높았습니다. 오늘 이 시간대에 핵심 작업을 배치하는 것을 추천합니다." 나아가 사용자의 목표 달성 속도를 분석해 "이 속도라면 목표까지 N일 소요 예상" 같은 진행 예보와 "이 구간에서 이탈 확률이 높습니다" 같은 위험 경고를 제공하는 방향으로 확장될 수 있습니다.' },
+  'B_Level4_Q1_Answer': { q: 'AI가 정답을 바로 알려줄 수 없다면 이 서비스는 어떻게 작동해야 할까?', a: 'AI가 즉각적 답을 주지 않는 제약은 서비스의 핵심 가치를 재정의하는 기회입니다. AI의 역할이 "답 제공자"에서 "질문 생성자"로 전환됩니다. 사용자 입력을 받으면 AI는 답 대신 더 나은 질문을 돌려주고, 사용자는 그 질문으로 스스로 답을 발견합니다. 이 구조에서 서비스 가치는 AI의 지식량이 아니라 "얼마나 좋은 질문을 하는가"로 이동합니다. 즉답 없이 탐색하는 과정에서 더 독창적인 아이디어가 나올 가능성이 높아집니다.' },
+  'B_Level4_Q2_Answer': { q: '사용자가 하루에 한 번만 이 서비스를 사용할 수 있다면 어떤 경험이 중요해질까?', a: '하루 1회 제한은 사용자가 접속 전에 충분히 생각하도록 강제합니다. 이 제약에서 핵심 경험은 "한 세션에서 얼마나 의미 있는 진전을 만드는가"입니다. 서비스는 사전 준비 도구(전날 밤 다음 세션 계획 입력)와 세션 후 성찰 도구(오늘 무엇을 발견했는가)를 중심으로 재설계됩니다. 이 구조는 하루 동안 생각이 무의식적으로 처리되어 다음 세션에서 더 발전된 아이디어가 나오는 "숙성 효과"를 의도적으로 설계한 것입니다.' },
+  'B_Level4_Q3_Answer': { q: '텍스트 입력을 금지한다면 사용자는 어떻게 아이디어를 표현할 수 있을까?', a: '텍스트 없이 아이디어를 표현하는 방식은 서비스의 근본적 재설계를 요구합니다. 가능한 대안으로는: 이미지·색상·사진으로 방향과 분위기를 전달하는 시각적 입력, 음성 메모와 목소리 톤으로 감정과 리듬을 포착하는 청각적 입력, 슬라이더와 드래그로 "얼마나 복잡한가", "얼마나 직관적인가" 같은 추상 속성을 조절하는 파라미터 입력이 있습니다. AI는 비텍스트 입력을 해석해 아이디어를 언어로 재구성합니다. 언어 능력에 무관하게 누구나 참여 가능한 접근성이 이 방식의 핵심 가치입니다.' },
+  'B_Level4_Q4_Answer': { q: '추천 기능을 제거해야 한다면 이 서비스의 핵심 가치는 어디에서 생길까?', a: '추천을 제거하면 서비스는 "이끄는 것"에서 "탐색을 지원하는 것"으로 전환됩니다. 핵심 가치는 최적 추천이 아니라 탐색의 질에서 생깁니다. 사용자가 자신의 공간을 자유롭게 구성하고 AI에게 원하는 역할을 직접 지정하는 "환경 설계 도구"로 포지션이 바뀝니다. 추천 없이도 가치를 발견하게 하려면 인터페이스 자체가 발견의 즐거움을 만들어야 합니다. 이는 알고리즘이 아닌 디자인이 핵심 경쟁력이 되는 서비스 모델입니다.' },
+  'B_Level5_Q1_Answer': { q: '이 서비스가 사용자를 돕지 않고 일부러 혼란스럽게 만들어야 한다면 어떤 가치가 생길까?', a: '의도적 혼란은 "낯설게 하기(defamiliarization)" 기법과 맞닿아 있습니다. 익숙한 방식으로 생각하면 혁신적 아이디어가 나오지 않습니다. AI가 모순된 제안을 하거나 입력 방향의 반대 관점을 제시하거나 예상치 못한 비유를 연결하면 사용자는 기존 사고 틀에서 벗어납니다. 이 "생산적 혼란" 모드에서 서비스 가치는 효율이 아니라 사고의 확장에 있습니다. 단, 혼란의 수위를 사용자가 조절할 수 있어야 하고, 무작위가 아닌 체계적 혼란이어야 효과가 있습니다.' },
+  'B_Level5_Q2_Answer': { q: '이 서비스의 핵심 기능을 완전히 금지해야 한다면 무엇이 새로운 핵심이 될까?', a: '핵심 기능을 제거하면 서비스는 완전히 다른 정체성을 얻습니다. 예를 들어 AI 응답 생성 기능을 없애면, 서비스는 "결과 생성 도구"에서 "사고 구조화 도구"로 전환됩니다. 남은 기능은 입력을 시각화하고, 논리 빈틈을 지적하고, 패턴을 분석하는 것이 됩니다. 핵심이 바뀌면 타깃도 바뀝니다. "AI가 대신 해줬으면" 하는 사용자 대신 "내 생각을 더 잘 정리하고 싶은" 사용자가 주 타깃이 됩니다. AI 의존성 없이 역량 강화에 집중하는 새로운 카테고리입니다.' },
+  'B_Level5_Q3_Answer': { q: '가장 실패할 것 같은 아이디어만 모아 서비스의 중심 기능으로 만든다면 어떤 플랫폼이 될까?', a: '"실패 아이디어 컬렉션" 플랫폼은 "좋은 아이디어는 나쁜 아이디어의 더미에서 나온다"는 원칙을 서비스화한 것입니다. AI는 가장 비현실적이고 엉뚱한 아이디어에 주목해 그 안에 숨은 도전 요소와 가치를 역방향으로 분석합니다. 여러 사용자의 실패 아이디어를 연결해 새로운 가능성을 발견하는 크로스 폴리네이션 기능이 핵심입니다. 실패가 공유되고 재활용되는 구조는 아이디어 제출의 심리적 장벽을 없애는 부수 효과도 만들어냅니다.' },
+  'B_Level5_Q4_Answer': { q: '사용자가 원하는 답을 주지 않는 AI가 오히려 더 좋은 아이디어를 만들게 한다면 어떻게 설계해야 할까?', a: '이 역설적 설계의 핵심은 "의도적 마찰"입니다. AI가 즉각적으로 원하는 것을 주지 않으면 사용자는 요청을 더 구체적으로 정의해야 하고, 그 과정에서 처음 몰랐던 진짜 필요를 발견합니다. 구체적 방식: AI가 요청에 반론이나 조건을 먼저 제시하고, 사용자가 그 반론을 넘어서는 이유를 설명하면 그때 지원을 시작합니다. 또는 요청한 것의 반대나 변형만 제시하고 사용자가 수정해가며 원하는 것에 도달하게 합니다. 결과의 질보다 과정의 깊이를 극대화하는 설계입니다.' },
+};
+
+function renderCondBAnswer(screenId) {
+  const data = B_ANSWERS[screenId];
+  if (!data) return `<div class="screen active">${topNav('조건 B', "navigate('09_Condition_B_Interface')")}<div class="scroll-wrap"><div class="scroll-content"><p>내용 없음</p></div></div><div class="bottom-area"><button class="btn-outline" onclick="navigate('09_Condition_B_Interface')">질문 목록으로 돌아가기</button></div></div>`;
+  return `<div class="screen active">
+    ${topNav('조건 B', "navigate('09_Condition_B_Interface')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="selected-q-card">
+        <div class="selected-q-label">선택한 질문</div>
+        <div class="selected-q-text">${data.q}</div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-title">AI 응답</div>
+        <div class="ai-card-body">${data.a.split('\n').map(l => l ? `<p style="margin-bottom:8px">${l}</p>` : '<br>').join('')}</div>
+      </div>
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-outline" onclick="navigate('09_Condition_B_Interface')">질문 목록으로 돌아가기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondBIdea(s) {
+  const isErr = s === '11_Condition_B_Idea_Input_Error';
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  return `<div class="screen active">
+    ${topNav('조건 B 아이디어 작성', "navigate('09_Condition_B_Interface')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">아이디어 작성</div>
+      <div class="section-subtitle">앞서 확인한 AI의 후속질문과 응답을 참고해 <span style="font-weight:600;color:var(--text-primary)">'${task.name}'</span>에 대해 떠오른 아이디어를 자유롭게 작성해 주세요.</div>
+      <div class="textarea-wrap">
+        <textarea class="text-textarea${isErr ? ' error-input' : ''}" id="idea-b" placeholder="떠오른 아이디어를 자유롭게 작성해 주세요." maxlength="1000" oninput="updateCharCount('idea-b','count-b',1000)">${state.condBIdea}</textarea>
+        <span class="char-count" id="count-b">${state.condBIdea.length}/1000</span>
+      </div>
+      ${isErr ? `<div class="error-msg visible">아이디어를 작성해야 다음 단계로 진행할 수 있습니다.</div>` : ''}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitCondBIdea()">조건 B 평가하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCondBEval(s) {
+  const isErr = s === '12_Condition_B_Evaluation_Error';
+  return `<div class="screen active">
+    ${topNav('조건 B 평가', "navigate('11_Condition_B_Idea_Input')")}
+    <div class="scroll-wrap"><div class="scroll-content">
+      <div class="section-title">조건 B 평가</div>
+      <div class="section-subtitle">각 항목에 대해 1(전혀 그렇지 않다)부터 5(매우 그렇다) 중 하나를 선택해 주세요.</div>
+      ${isErr ? `<div class="error-msg visible" style="margin-bottom:12px">모든 평가 항목에 응답해야 실험을 완료할 수 있습니다.</div>` : ''}
+      ${EVAL_QUESTIONS.map((q, i) => {
+        const evalErr = isErr && !state.condBEval[i];
+        return `<div class="eval-item${evalErr ? ' error-item' : ''}">
+          <div class="eval-q">${i+1}. ${q}</div>
+          <div class="eval-scale">
+            <div class="eval-labels"><span>전혀 그렇지 않다</span><span>매우 그렇다</span></div>
+            <div class="eval-nums">
+              ${[1,2,3,4,5].map(n => `<div class="eval-num${state.condBEval[i]===n?' selected':''}" onclick="selectEval('B',${i},${n})">${n}</div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="height:20px"></div>
+    </div></div>
+    <div class="bottom-area">
+      <button class="btn-primary" onclick="submitCondBEval()">실험 완료하기</button>
+    </div>
+  </div>`;
+}
+
+function renderCompletion() {
+  return `<div class="screen active">
+    ${topNav('실험 완료', '', false)}
+    <div class="completion-center">
+      <div class="completion-icon" id="completion-icon">✓</div>
+      <div class="completion-title" id="completion-title">실험이 완료되었습니다</div>
+      <div class="completion-desc" id="completion-desc">참여해 주셔서 감사합니다.<br>두 가지 조건에서의 아이디어 작성과 평가가 모두 완료되었습니다.<br><br>수집된 데이터는 익명으로 처리되며 연구 목적으로만 활용됩니다.</div>
+      <div id="submit-status" style="margin-top:20px;font-size:13px;color:var(--text-tertiary);letter-spacing:-0.2px"></div>
+    </div>
+  </div>`;
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+function attachEvents(s) {
+  // textarea char count restore
+  const ta = document.getElementById('idea-a') || document.getElementById('idea-b');
+  if (ta) {
+    const id = ta.id;
+    const countId = id === 'idea-a' ? 'count-a' : 'count-b';
+    ta.addEventListener('input', () => {
+      if (id === 'idea-a') state.condAIdea = ta.value;
+      else state.condBIdea = ta.value;
+    });
+  }
+}
+
+// Global functions called from HTML
+window.toggleConsent = () => {
+  state.consent = !state.consent;
+  // DOM만 업데이트 — 스크롤 위치 유지
+  const box = document.getElementById('check-box');
+  if (box) {
+    box.classList.toggle('checked', state.consent);
+  }
+};
+
+window.submitConsent = () => {
+  if (!state.consent) navigate('01_Research_Consent_Error');
+  else navigate('02_Participant_Info');
+};
+
+window.submitParticipantInfo = () => {
+  const i = state.info;
+  const required = ['age', 'gender', 'status', 'aiFreq', 'designExp'];
+  const allFilled = required.every(k => i[k]);
+  if (!allFilled) {
+    state.infoError = true;
+    // 스크롤 위치 유지하며 오류만 DOM 업데이트
+    const sc = document.querySelector('.scroll-content');
+    const scrollPos = sc ? sc.scrollTop : 0;
+    render();
+    if (sc) setTimeout(() => { sc.scrollTop = scrollPos; }, 0);
+    // 첫 번째 미선택 항목으로 스크롤
+    setTimeout(() => {
+      const firstErr = document.querySelector('.error-msg.visible');
+      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    return;
+  }
+  state.infoError = false;
+  navigate('02b_Experiment_Intro');
+};
+
+window.selectChoice = (field, val, multi) => {
+  state.info[field] = val;
+  // 해당 그룹 버튼만 DOM 업데이트 — 스크롤 위치 유지
+  document.querySelectorAll('.choice-btn').forEach(btn => {
+    const oc = btn.getAttribute('onclick') || '';
+    if (oc.includes("'" + field + "'")) {
+      btn.classList.toggle('selected', btn.textContent.trim() === val);
+    }
+  });
+  // 선택 즉시 해당 필드 에러 메시지 숨김
+  const group = document.querySelector('.choice-btn[onclick*="\'' + field + '\'"]');
+  if (group) {
+    const formGroup = group.closest('.form-group');
+    if (formGroup) {
+      const errMsg = formGroup.querySelector('.error-msg');
+      if (errMsg) errMsg.classList.remove('visible');
+    }
+  }
+};
+
+window.selectTask = (id) => {
+  state.selectedTask = id;
+  document.querySelectorAll('.task-card').forEach(card => {
+    const oc = card.getAttribute('onclick') || '';
+    const match = oc.match(/selectTask\((\d+)\)/);
+    if (match) {
+      const isSelected = parseInt(match[1]) === id;
+      card.classList.toggle('selected', isSelected);
+    }
+  });
+};
+
+window.submitTask = () => {
+  if (!state.selectedTask) navigate('03_Task_Selection_Error');
+  else navigate('04_Selected_Task_Confirm');
+};
+
+window.submitCondAIdea = () => {
+  const ta = document.getElementById('idea-a');
+  if (ta) state.condAIdea = ta.value;
+  if (!state.condAIdea.trim()) navigate('07_Condition_A_Idea_Input_Error');
+  else navigate('08_Condition_A_Evaluation');
+};
+
+window.submitCondBIdea = () => {
+  const ta = document.getElementById('idea-b');
+  if (ta) state.condBIdea = ta.value;
+  if (!state.condBIdea.trim()) navigate('11_Condition_B_Idea_Input_Error');
+  else navigate('12_Condition_B_Evaluation');
+};
+
+window.selectEval = (cond, idx, val) => {
+  if (cond === 'A') state.condAEval[idx] = val;
+  else state.condBEval[idx] = val;
+  // 해당 문항 숫자 버튼만 업데이트 — 스크롤 위치 유지
+  const items = document.querySelectorAll('.eval-item');
+  if (items[idx]) {
+    items[idx].querySelectorAll('.eval-num').forEach(btn => {
+      const n = parseInt(btn.textContent.trim());
+      btn.classList.toggle('selected', n === val);
+    });
+    // 오류 하이라이트 제거
+    items[idx].classList.remove('error-item');
+  }
+};
+
+window.submitCondAEval = () => {
+  for (let i = 0; i < 5; i++) {
+    if (!state.condAEval[i]) { navigate('08_Condition_A_Evaluation_Error'); return; }
+  }
+  navigate('08b_Condition_Transition');
+};
+
+window.submitCondBEval = () => {
+  for (let i = 0; i < 5; i++) {
+    if (!state.condBEval[i]) { navigate('12_Condition_B_Evaluation_Error'); return; }
+  }
+  navigate('13_Completion');
+  // 완료 후 구글 시트로 데이터 전송
+  setTimeout(() => submitToGoogleSheet(), 300);
+};
+
+window.submitToGoogleSheet = async () => {
+  const statusEl = document.getElementById('submit-status');
+  if (statusEl) statusEl.textContent = '데이터 저장 중...';
+
+  const task = TASKS.find(t => t.id === state.selectedTask);
+  const payload = {
+    age:        state.info.age,
+    gender:     state.info.gender,
+    status:     state.info.status,
+    aiFreq:     state.info.aiFreq,
+    designExp:  state.info.designExp,
+    email:      state.info.email || '',
+    selectedTask: task ? task.name : '',
+    condAIdea:  state.condAIdea,
+    condAEval1: state.condAEval[0] || '',
+    condAEval2: state.condAEval[1] || '',
+    condAEval3: state.condAEval[2] || '',
+    condAEval4: state.condAEval[3] || '',
+    condAEval5: state.condAEval[4] || '',
+    condBLevel: state.condBLevel,
+    condBIdea:  state.condBIdea,
+    condBEval1: state.condBEval[0] || '',
+    condBEval2: state.condBEval[1] || '',
+    condBEval3: state.condBEval[2] || '',
+    condBEval4: state.condBEval[3] || '',
+    condBEval5: state.condBEval[4] || '',
+  };
+
+  try {
+    await fetch('https://script.google.com/macros/s/AKfycbwY51PtvXNRrMBFZy-unb1Uh2K3arbd7SSYWR_uFkPOa8BBuhdMk-kSQoolqtfVF_eyrQ/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (statusEl) statusEl.textContent = '✓ 응답이 성공적으로 저장되었습니다.';
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '저장 중 오류가 발생했습니다. 연구자에게 문의해 주세요.';
+    console.error('Sheet submit error:', err);
+  }
+};
+
+window.handleSliderClick = (e) => {
+  const track = document.getElementById('slider-track');
+  if (!track) return;
+  const rect = track.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const pct = Math.max(0, Math.min(1, x / rect.width));
+  const level = Math.round(pct * 4) + 1;
+  setLevel(level);
+};
+
+window.handleSliderTouch = (e) => {
+  e.preventDefault();
+  const track = document.getElementById('slider-track');
+  if (!track) return;
+  const touch = e.touches[0];
+  const rect = track.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const pct = Math.max(0, Math.min(1, x / rect.width));
+  const level = Math.round(pct * 4) + 1;
+  setLevel(level);
+};
+
+window.handleSliderTouchEnd = (e) => {
+  e.preventDefault();
+};
+
+window.setLevel = (n) => {
+  state.condBLevel = n;
+  // 슬라이더와 질문 목록만 DOM 업데이트 — 스크롤 위치 유지
+
+  // 1) 슬라이더 fill + thumb 업데이트
+  const pct = ((n - 1) / 4 * 100) + '%';
+  const fill = document.getElementById('slider-fill');
+  if (fill) fill.style.width = pct;
+  const thumb = document.getElementById('slider-thumb');
+  if (thumb) thumb.style.left = pct;
+
+  // 2) 단계 숫자 active 표시 업데이트
+  document.querySelectorAll('.slider-step').forEach(el => {
+    el.classList.toggle('active', parseInt(el.textContent.trim()) === n);
+  });
+
+  // 3) 후속 질문 섹션 제목 업데이트
+  const secLabel = document.querySelector('.q-section-label');
+  if (secLabel) secLabel.textContent = '후속 질문 — ' + n + '단계';
+
+  // 4) 질문 카드 목록 업데이트
+  const qList = document.getElementById('b-question-list');
+  if (qList) {
+    const questions = window.COND_B_QUESTIONS[n];
+    qList.innerHTML = questions.map(q =>
+      '<div class="q-card" onclick="navigate(\'' + q.screen + '\')">' +
+        '<div style="flex:1"><div class="q-card-text">' + q.text + '</div></div>' +
+        '<div class="q-card-arrow">›</div>' +
+      '</div>'
+    ).join('');
+  }
+};
+
+window.navigate = navigate;
+
+window.updateCharCount = (taId, countId, max) => {
+  const ta = document.getElementById(taId);
+  const cnt = document.getElementById(countId);
+  if (ta && cnt) cnt.textContent = `${ta.value.length}/${max}`;
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
